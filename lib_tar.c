@@ -1,4 +1,6 @@
 #include "lib_tar.h"
+#include <stdio.h>
+#include <string.h>
 
 /**
  * Checks whether the archive is valid.
@@ -16,7 +18,39 @@
  *         -3 if the archive contains a header with an invalid checksum value
  */
 int check_archive(int tar_fd) {
-    return 0;
+    int counter = 0;
+    char* buffer = malloc(sizeof(tar_header_t));
+    lseek(tar_fd, 0, SEEK_SET);
+
+    while (read(tar_fd, buffer, sizeof(tar_header_t)) > 0) {
+        
+        tar_header_t* tar_header = (tar_header_t*) buffer;
+
+        if(tar_header->typeflag != '1' && tar_header->typeflag != '5') {
+            if(TAR_INT(tar_header->size) == 0) { break; } // Check not null file
+
+            if(memcmp(tar_header->magic, TMAGIC, TMAGLEN) != 0) { free(buffer); return -1; } // Check magic value
+            if(memcmp(tar_header->version, TVERSION, TVERSLEN) != 0) { free(buffer); return -2; } // Check version value
+
+            // Check checksum value
+            int sum = 0;
+            for (size_t i = 0; i < sizeof(tar_header_t); i++) {
+                if (i >= 148 && i < 156) {
+                    sum += 32;
+                } else {
+                    sum += (int)*((char*)tar_header + i);
+                }
+            }
+
+            if(TAR_INT(tar_header->chksum) != sum) { free(buffer); return -3; }
+
+            lseek(tar_fd, ((TAR_INT(tar_header->size)/512)+1)*512, SEEK_CUR); // Skip to the next header block
+            counter++;   
+        }
+    }
+
+    free(buffer);
+    return counter;
 }
 
 /**
