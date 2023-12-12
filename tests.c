@@ -60,5 +60,9 @@ int main(int argc, char **argv) {
 
     printf("is_file results: Makefile(1): %d, tests.c(1):%d nope:%d\n", is_file_make, is_file_tests, is_file_nope);
 
+    // is_symlink() tests
+    int is_symlink_make = is_symlink(fd, "Makefile");
+    printf("is_symlink results: Makefile(0): %d\n", is_symlink_make);
+
     return 0;
 }
