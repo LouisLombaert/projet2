@@ -106,6 +106,14 @@ int is_dir(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_file(int tar_fd, char *path) {
+    tar_header_t* buffer = malloc(sizeof(tar_header_t));
+    lseek(tar_fd, 0, SEEK_SET); 
+
+    while (read(tar_fd, buffer, sizeof(tar_header_t)) > 0) {
+        if(strcmp(path, buffer->name) == 0 && buffer->typeflag == REGTYPE) { free(buffer); return 1; } 
+    }
+     
+    free(buffer);
     return 0;
 }
 

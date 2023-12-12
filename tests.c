@@ -53,6 +53,12 @@ int main(int argc, char **argv) {
 
     printf("is_dir results: Makefile(0): %d, dir(0):%d\n", is_dir_make, is_dir_dir);
 
+    // is_file() tests
+    int is_file_make = is_file(fd,"Makefile");
+    int is_file_tests = is_file(fd, "tests.c");
+    int is_file_nope = is_file(fd, "nope");
+
+    printf("is_file results: Makefile(1): %d, tests.c(1):%d nope:%d\n", is_file_make, is_file_tests, is_file_nope);
 
     return 0;
 }
