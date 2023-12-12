@@ -63,6 +63,14 @@ int check_archive(int tar_fd) {
  *         any other value otherwise.
  */
 int exists(int tar_fd, char *path) {
+    tar_header_t* buffer = malloc(sizeof(tar_header_t));
+    lseek(tar_fd, 0, SEEK_SET); 
+
+    while (read(tar_fd, buffer, sizeof(tar_header_t)) > 0) {
+        if(strcmp(path, buffer->name) == 0) { free(buffer); return 1; } // File exists
+    }
+     
+    free(buffer);
     return 0;
 }
 

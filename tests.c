@@ -24,6 +24,7 @@ void debug_dump(const uint8_t *bytes, size_t len) {
     }
 }
 
+
 int main(int argc, char **argv) {
     if (argc < 2) {
         printf("Usage: %s tar_file\n", argv[0]);
@@ -38,6 +39,13 @@ int main(int argc, char **argv) {
 
     int ret = check_archive(fd);
     printf("check_archive returned %d\n", ret);
+
+    // Exists() tests
+    int exists_make = exists(fd, "Makefile");
+    int exists_tests = exists(fd, "tests.c");
+    int exists_nope = exists(fd, "nope");
+
+    printf("Exists results: Makefile(1): %d, tests.c(1):%d, nope(0):%d\n", exists_make, exists_tests, exists_nope);
 
     return 0;
 }
