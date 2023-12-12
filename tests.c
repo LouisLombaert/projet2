@@ -47,5 +47,12 @@ int main(int argc, char **argv) {
 
     printf("Exists results: Makefile(1): %d, tests.c(1):%d, nope(0):%d\n", exists_make, exists_tests, exists_nope);
 
+    // is_dir() tests
+    int is_dir_make = is_dir(fd, "Makefile");
+    int is_dir_dir = is_dir(fd, "dir");
+
+    printf("is_dir results: Makefile(0): %d, dir(0):%d\n", is_dir_make, is_dir_dir);
+
+
     return 0;
 }

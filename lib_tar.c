@@ -26,7 +26,7 @@ int check_archive(int tar_fd) {
         
         tar_header_t* tar_header = (tar_header_t*) buffer;
 
-        if(tar_header->typeflag != '1' && tar_header->typeflag != '5') {
+        if(tar_header->typeflag != LNKTYPE && tar_header->typeflag != DIRTYPE) {
             if(TAR_INT(tar_header->size) == 0) { break; } // Check not null file
 
             if(memcmp(tar_header->magic, TMAGIC, TMAGLEN) != 0) { free(buffer); return -1; } // Check magic value
@@ -84,8 +84,17 @@ int exists(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_dir(int tar_fd, char *path) {
+    tar_header_t* buffer = malloc(sizeof(tar_header_t));
+    lseek(tar_fd, 0, SEEK_SET); 
+
+    while (read(tar_fd, buffer, sizeof(tar_header_t)) > 0) {
+        if(strcmp(path, buffer->name) == 0 && buffer->typeflag == DIRTYPE) { free(buffer); return 1; } 
+    }
+     
+    free(buffer);
     return 0;
 }
+
 
 /**
  * Checks whether an entry exists in the archive and is a file.
