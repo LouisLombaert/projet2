@@ -38,31 +38,55 @@ int main(int argc, char **argv) {
     }
 
     int ret = check_archive(fd);
-    printf("check_archive returned %d\n", ret);
+    printf("===========================\n|| check_archive() tests ||\n===========================\n\n");
+    printf("check_archive should return 4 and returned: %d\n", ret);
 
     // Exists() tests
     int exists_make = exists(fd, "Makefile");
     int exists_tests = exists(fd, "tests.c");
-    int exists_nope = exists(fd, "nope");
+    int exists_nope = exists(fd, "nope.txt");
 
-    printf("Exists results: Makefile(1): %d, tests.c(1):%d, nope(0):%d\n", exists_make, exists_tests, exists_nope);
+    printf("\n\n====================\n|| exists() tests ||\n====================\n\n");
+    printf("Exists Makefile should return 1 and returnd:%d\n", exists_make);
+    printf("Exists tests.c should return 1 and returnd:%d\n", exists_tests);
+    printf("Exists nope.txt should return 0 and returnd:%d\n", exists_nope);
 
     // is_dir() tests
     int is_dir_make = is_dir(fd, "Makefile");
     int is_dir_dir = is_dir(fd, "dir");
 
-    printf("is_dir results: Makefile(0): %d, dir(0):%d\n", is_dir_make, is_dir_dir);
+    printf("\n\n====================\n|| is_dir() tests ||\n====================\n\n");
+    printf("Is_dir Makefile should return 0 and returnd:%d\n", is_dir_make);
+    printf("Is_dir dir should return 0 and returnd:%d\n", is_dir_dir);
 
     // is_file() tests
     int is_file_make = is_file(fd,"Makefile");
-    int is_file_tests = is_file(fd, "tests.c");
-    int is_file_nope = is_file(fd, "nope");
+    int is_file_target_file = is_file(fd, "target_file.txt");
+    int is_file_file1 = is_file(fd, "file1.txt");
+    int is_file_nope = is_file(fd, "nope.txt");
 
-    printf("is_file results: Makefile(1): %d, tests.c(1):%d nope:%d\n", is_file_make, is_file_tests, is_file_nope);
+    printf("\n\n=====================\n|| is_file() tests ||\n=====================\n\n");
+    printf("Is_file Makefile should return 1 and returnd:%d\n", is_file_make);
+    printf("Is_file target_file.txt should return 1 and returnd:%d\n", is_file_target_file);
+    printf("Is_file nope.txt should return 0 and returnd:%d\n", is_file_nope);
+    printf("Is_file file1.txt should return 1 and returnd:%d\n", is_file_file1);
 
     // is_symlink() tests
-    int is_symlink_make = is_symlink(fd, "Makefile");
-    printf("is_symlink results: Makefile(0): %d\n", is_symlink_make);
+    int is_symlink_link = is_symlink(fd, "symbolic_link.txt");
+    int is_symlink_nope = is_symlink(fd, "nope.txt");
 
+    printf("\n\n========================\n|| is_symlink() tests ||\n========================\n\n");
+    printf("Is_symlink symbolic_link.txt should return 1 and returnd:%d\n", is_symlink_link);
+    printf("Is_symlink nope.txt should return 0 and returnd:%d\n", is_symlink_nope);
+
+    // read_file() test
+    size_t len = 1024;
+    uint8_t buffer[1024];
+    ssize_t result = read_file(fd, "file1.txt", 0, buffer, &len);
+
+    printf("\n\n=======================\n|| read_file() tests ||\n=======================\n\n");
+    printf("read_file should return 0 and returned:%ld\nShould show 'file to read.' and read: %zu bytes from file1.txt and print:\n%s\n",result, len, (char *)buffer);
+    
+    close(fd);
     return 0;
 }
