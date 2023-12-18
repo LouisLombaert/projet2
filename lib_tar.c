@@ -1,6 +1,10 @@
 #include "lib_tar.h"
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 /**
  * Checks whether the archive is valid.
@@ -160,8 +164,68 @@ int is_symlink(int tar_fd, char *path) {
  * @return zero if no directory at the given path exists in the archive,
  *         any other value otherwise.
  */
+
+void resolve_symlink(int tar_fd, tar_header_t* symlink_entry, char* resolved_path) {
+ 
+    strcpy(resolved_path, symlink_entry->name);
+
+    tar_header_t linked_entry;
+    lseek(tar_fd, 0, SEEK_SET);
+    while (read(tar_fd, &linked_entry, sizeof(tar_header_t)) > 0) {
+        if (strcmp(linked_entry.name, symlink_entry->name) == 0) {
+            strcpy(resolved_path, linked_entry.name);
+            return;
+        }
+        lseek(tar_fd, ((TAR_INT(linked_entry.size)/512)+1)*512, SEEK_CUR);
+    }
+}
+
 int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
-    return 0;
+    tar_header_t* buffer= malloc(sizeof(tar_header_t));
+    int counter = 0;
+    
+    
+    if (no_entries == NULL) {
+        printf(stderr, "Erreur when allocating memory.\n");
+        return -1;
+    }
+    
+    
+    size_t max_no_entries = *no_entries;
+    *no_entries = 0;
+    lseek(tar_fd, 0, SEEK_SET);
+
+
+    while(read(tar_fd, buffer, sizeof(tar_header_t)) > 0){
+        tar_header_t* tar_header = (tar_header_t*) buffer;
+        size_t length = strlen(path);
+
+        if(buffer->typeflag != DIRTYPE && buffer->typeflag != SYMTYPE){
+            return -1;
+        }
+
+        if(buffer->typeflag != SYMTYPE){
+            char resolved_path[30];
+            resolve_symlink(tar_fd, buffer, resolved_path);
+        }
+
+        // resolve symlink
+        //char resolved_path[30];
+        //resolve_symlink(tar_fd, buffer, resolved_path);
+
+        int comp = strncmp(path, buffer->name, length);
+        
+        if (comp == 0){
+            if(counter < max_no_entries) {
+                strcpy(entries[counter], buffer->name);
+                counter++;
+            }
+            *no_entries += 1;
+        }
+        lseek(tar_fd, ((TAR_INT(tar_header->size)/512)+1)*512, SEEK_CUR); // Skip to the next header block
+    }
+    free(buffer);
+    return (*no_entries > 0) ? 1 : 0;
 }
 
 /**

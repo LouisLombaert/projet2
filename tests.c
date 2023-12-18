@@ -50,10 +50,14 @@ int main(int argc, char **argv) {
     printf("Exists Makefile should return 1 and returnd:%d\n", exists_make);
     printf("Exists tests.c should return 1 and returnd:%d\n", exists_tests);
     printf("Exists nope.txt should return 0 and returnd:%d\n", exists_nope);
+    int exists_nope = exists(fd, "nope");
+    int exists_dir = exists(fd, "testDir/");
+
+    printf("Exists results: Makefile(1): %d, tests.c(1):%d, nope(0):%d, testDir(1):%d\n", exists_make, exists_tests, exists_nope, exists_dir);
 
     // is_dir() tests
     int is_dir_make = is_dir(fd, "Makefile");
-    int is_dir_dir = is_dir(fd, "dir");
+    int is_dir_dir = is_dir(fd, "testDir/");
 
     printf("\n\n====================\n|| is_dir() tests ||\n====================\n\n");
     printf("Is_dir Makefile should return 0 and returnd:%d\n", is_dir_make);
@@ -88,5 +92,25 @@ int main(int argc, char **argv) {
     printf("read_file should return 0 and returned:%ld\nShould show 'file to read.' and read: %zu bytes from file1.txt and print:\n%s\n",result, len, (char *)buffer);
     
     close(fd);
+
+    //list() tests
+    char **entries;
+    entries = (char **)malloc(10 * sizeof(char *));
+    for (int i=0; i < 10; i++){
+    	entries[i] = (char *) malloc(30*sizeof(char));
+    }
+    size_t *no_entries;
+    no_entries = (size_t *)malloc(sizeof(size_t));
+    *no_entries = 10;
+    
+    int list_test = list(fd, "testDir/", entries, no_entries);
+    printf("\nlist_test results: testDir(1): %d, avec %d entrées(2).\n", list_test, *no_entries);
+
+    for (int i=0; i<*no_entries; i++){
+        printf("%s\n", entries[i]);
+        free(entries[i]);
+    }
+    free(no_entries);
+
     return 0;
 }
