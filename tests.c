@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
     *no_entries = 10;
     
     int list_test = list(fd, "testDir/", entries, no_entries);
-    printf("\nlist_test results: testDir(1): %d, avec %d entrées(2).\n", list_test, *no_entries);
+    printf("\nlist_test results: testDir(1): %d, avec %ld entrées(2).\n", list_test, *no_entries);
 
     for (int i=0; i<*no_entries; i++){
         printf("%s\n", entries[i]);

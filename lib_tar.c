@@ -186,7 +186,7 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
     
     
     if (no_entries == NULL) {
-        printf(stderr, "Erreur when allocating memory.\n");
+        printf("Error when allocating memory.\n");
         return -1;
     }
     
