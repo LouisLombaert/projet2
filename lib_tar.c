@@ -166,7 +166,6 @@ int is_symlink(int tar_fd, char *path) {
  */
 
 void resolve_symlink(int tar_fd, tar_header_t* symlink_entry, char* resolved_path) {
- 
     strcpy(resolved_path, symlink_entry->name);
 
     tar_header_t linked_entry;
@@ -176,7 +175,7 @@ void resolve_symlink(int tar_fd, tar_header_t* symlink_entry, char* resolved_pat
             strcpy(resolved_path, linked_entry.name);
             return;
         }
-        lseek(tar_fd, ((TAR_INT(linked_entry.size)/512)+1)*512, SEEK_CUR);
+        lseek(tar_fd, ((TAR_INT(linked_entry.size) / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR);
     }
 }
 
@@ -184,12 +183,10 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
     tar_header_t* buffer= malloc(sizeof(tar_header_t));
     int counter = 0;
     
-    
     if (no_entries == NULL) {
         printf("Error when allocating memory.\n");
         return -1;
     }
-    
     
     size_t max_no_entries = *no_entries;
     *no_entries = 0;
@@ -201,29 +198,33 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
         size_t length = strlen(path);
 
         if(buffer->typeflag != DIRTYPE && buffer->typeflag != SYMTYPE){
+            free(buffer);
             return -1;
         }
 
-        if(buffer->typeflag != SYMTYPE){
+        if(buffer->typeflag == SYMTYPE) {
             char resolved_path[30];
             resolve_symlink(tar_fd, buffer, resolved_path);
-        }
-
-        // resolve symlink
-        //char resolved_path[30];
-        //resolve_symlink(tar_fd, buffer, resolved_path);
-
-        int comp = strncmp(path, buffer->name, length);
-        
-        if (comp == 0){
-            if(counter < max_no_entries) {
-                strcpy(entries[counter], buffer->name);
-                counter++;
+            
+            if(strncmp(path, resolved_path, length) != 0) {
+                lseek(tar_fd, ((TAR_INT(tar_header->size) / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR);
+                continue;
             }
-            *no_entries += 1;
+        } else if(strncmp(path, buffer->name, length) != 0) {
+            lseek(tar_fd, ((TAR_INT(tar_header->size) / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR);
+            continue;
         }
-        lseek(tar_fd, ((TAR_INT(tar_header->size)/512)+1)*512, SEEK_CUR); // Skip to the next header block
+
+        if(counter <= max_no_entries) {
+            entries[counter] = malloc(strlen(buffer->name) + 1);
+            strcpy(entries[counter], buffer->name);
+            counter++;
+        }
+
+        *no_entries += 1;
+        lseek(tar_fd, ((TAR_INT(tar_header->size) / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR); // Skip to the next header block
     }
+    
     free(buffer);
     return (*no_entries > 0) ? 1 : 0;
 }

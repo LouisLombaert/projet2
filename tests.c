@@ -50,10 +50,9 @@ int main(int argc, char **argv) {
     printf("Exists Makefile should return 1 and returnd:%d\n", exists_make);
     printf("Exists tests.c should return 1 and returnd:%d\n", exists_tests);
     printf("Exists nope.txt should return 0 and returnd:%d\n", exists_nope);
-    int exists_nope = exists(fd, "nope");
     int exists_dir = exists(fd, "testDir/");
 
-    printf("Exists results: Makefile(1): %d, tests.c(1):%d, nope(0):%d, testDir(1):%d\n", exists_make, exists_tests, exists_nope, exists_dir);
+    printf("Exists results: Makefile(1): %d, tests.c(1):%d, nope(0):%d, testDir(0):%d\n", exists_make, exists_tests, exists_nope, exists_dir);
 
     // is_dir() tests
     int is_dir_make = is_dir(fd, "Makefile");
