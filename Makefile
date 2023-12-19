@@ -15,7 +15,7 @@ submit: all
 # Added commands
 arch:
 	ln -s target_file.txt symbolic_link.txt
-	tar --posix --pax-option delete=".*" --pax-option delete="*time*" --no-xattrs --no-acl --no-selinux -c *.h *.c Makefile *.txt > arch.tar
+	tar --posix --pax-option delete=".*" --pax-option delete="*time*" --no-xattrs --no-acl --no-selinux -c *.h *.c Makefile *.txt testDir > arch.tar
 
 cls:
 	rm -f *.o *.tar symbolic_link.txt
