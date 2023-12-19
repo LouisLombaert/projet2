@@ -89,7 +89,6 @@ int main(int argc, char **argv) {
     printf("\n\n=======================\n|| read_file() tests ||\n=======================\n\n");
     printf("read_file should return 0 and returned:%ld\nShould show 'file to read.' and read: %zu bytes from file1.txt and print:\n%s\n",result, len, (char *)buffer);
     
-    close(fd);
 
     //list() tests
     char **entries;
@@ -109,6 +108,8 @@ int main(int argc, char **argv) {
         free(entries[i]);
     }
     free(no_entries);
+    
+    close(fd);
 
     return 0;
 }

@@ -197,31 +197,43 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
         tar_header_t* tar_header = (tar_header_t*) buffer;
         size_t length = strlen(path);
 
-        if(buffer->typeflag != DIRTYPE && buffer->typeflag != SYMTYPE){
-            free(buffer);
-            return -1;
-        }
-
         if(buffer->typeflag == SYMTYPE) {
             char resolved_path[30];
             resolve_symlink(tar_fd, buffer, resolved_path);
             
-            if(strncmp(path, resolved_path, length) != 0) {
-                lseek(tar_fd, ((TAR_INT(tar_header->size) / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR);
+            if(strncmp(path, resolved_path, length) == 0) {
+                // vérifier que l'entrée n'est pas la directory elle même
+                if (strcmp(path, resolved_path) != 0){
+                    if(counter < max_no_entries) { //max 10 entréés => counter va de 0 à 9 
+                        entries[counter] = malloc(strlen(resolved_path) + 1);
+                        strcpy(entries[counter], resolved_path);
+                        counter++;
+                    }
+                    *no_entries += 1;
+                }
+                
                 continue;
             }
-        } else if(strncmp(path, buffer->name, length) != 0) {
-            lseek(tar_fd, ((TAR_INT(tar_header->size) / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR);
+        } else if(strncmp(path, buffer->name, length) == 0) {
+            // vérifier que l'entrée n'est pas la directory elle même
+            if (strcmp(path, buffer->name) != 0){
+                if(counter < max_no_entries) { //max 10 entréés => counter va de 0 à 9 
+                    entries[counter] = malloc(strlen(buffer->name) + 1);
+                    strcpy(entries[counter], buffer->name);
+                    counter++;
+                }
+		        *no_entries += 1;
+	        }
+            else if(buffer->typeflag != DIRTYPE){
+                //vérifier, si l'entrée est la directory elle-même, que c'est bien une directory
+                    free(buffer);
+                    printf("not a directory.\n");
+                return -1;
+            }
             continue;
+            
         }
 
-        if(counter <= max_no_entries) {
-            entries[counter] = malloc(strlen(buffer->name) + 1);
-            strcpy(entries[counter], buffer->name);
-            counter++;
-        }
-
-        *no_entries += 1;
         lseek(tar_fd, ((TAR_INT(tar_header->size) / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR); // Skip to the next header block
     }
     
