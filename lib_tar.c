@@ -22,38 +22,43 @@
  *         -3 if the archive contains a header with an invalid checksum value
  */
 int check_archive(int tar_fd) {
-    int counter = 0;
-    char* buffer = malloc(sizeof(tar_header_t));
     lseek(tar_fd, 0, SEEK_SET);
+    char buffer[sizeof(tar_header_t)];
+    int counter = 0;
+    
+    while (1) {
+        if(read(tar_fd, buffer, sizeof(tar_header_t)) != sizeof(tar_header_t)) return -1; // read error 
 
-    while (read(tar_fd, buffer, sizeof(tar_header_t)) > 0) {
-        
-        tar_header_t* tar_header = (tar_header_t*) buffer;
+        tar_header_t* tar_header = (tar_header_t*)buffer;
 
-        if(tar_header->typeflag != LNKTYPE && tar_header->typeflag != DIRTYPE) {
-            if(TAR_INT(tar_header->size) == 0) { break; } // Check not null file
+        if(strncmp(tar_header->magic, TMAGIC, TMAGLEN) != 0) return -1; // magic error
+        if(strncmp(tar_header->version, TVERSION, TVERSLEN) != 0) return -2; // version error
 
-            if(memcmp(tar_header->magic, TMAGIC, TMAGLEN) != 0) { free(buffer); return -1; } // Check magic value
-            if(memcmp(tar_header->version, TVERSION, TVERSLEN) != 0) { free(buffer); return -2; } // Check version value
-
-            // Check checksum value
-            int sum = 0;
-            for (size_t i = 0; i < sizeof(tar_header_t); i++) {
-                if (i >= 148 && i < 156) {
-                    sum += 32;
-                } else {
-                    sum += (int)*((char*)tar_header + i);
-                }
-            }
-
-            if(TAR_INT(tar_header->chksum) != sum) { free(buffer); return -3; }
-
-            lseek(tar_fd, ((TAR_INT(tar_header->size)/512)+1)*512, SEEK_CUR); // Skip to the next header block
-            counter++;   
+        int sum = 0;
+        for (int i = 0; i < sizeof(tar_header_t); i++) {
+            sum += (i >= 148 && i < 156) ? ' ' : buffer[i];
         }
+
+        if(TAR_INT(tar_header->chksum) != sum) return -3; // checksum error
+
+        int skip = (TAR_INT(tar_header->size) + sizeof(tar_header_t) - 1) / sizeof(tar_header_t);
+        lseek(tar_fd,skip*sizeof(tar_header_t),SEEK_CUR);
+
+        counter++;
+
+        // Check end
+        char check_end[2*sizeof(tar_header_t)];
+        if(read(tar_fd, check_end, 2*sizeof(tar_header_t)) != 2*sizeof(tar_header_t)) return -1; // read error
+
+        int stop = 0;
+        for (int i = 0; i < 2*sizeof(tar_header_t); ++i) {
+            stop += check_end[i];
+        }
+
+        lseek(tar_fd, -2*sizeof(tar_header_t), SEEK_CUR);
+        if(stop == 0) break;
     }
 
-    free(buffer);
     return counter;
 }
 
@@ -183,11 +188,6 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
     tar_header_t* buffer= malloc(sizeof(tar_header_t));
     int counter = 0;
     
-    if (no_entries == NULL) {
-        printf("Error when allocating memory.\n");
-        return -1;
-    }
-    
     size_t max_no_entries = *no_entries;
     *no_entries = 0;
     lseek(tar_fd, 0, SEEK_SET);
@@ -266,13 +266,19 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
     while (read(tar_fd, buffer, sizeof(tar_header_t)) > 0) {
         tar_header_t* tar_header = (tar_header_t*)buffer;
 
-        if(strcmp(path, tar_header->name) == 0) {
-            if(tar_header->typeflag != REGTYPE) { *len = 0; return -1; } // Check for regular file
+        if (strcmp(path, tar_header->name) == 0) {
+            if (tar_header->typeflag != REGTYPE) {
+                *len = 0;
+                return -1; 
+            }
 
             size_t fsize = TAR_INT(tar_header->size);
-            if(offset >= fsize) { *len = 0; return -2; } // Check for correct offset
+            if (offset >= fsize) {
+                *len = 0;
+                return -2; 
+            }
 
-            lseek(tar_fd, offset, SEEK_CUR); // Go to offset
+            lseek(tar_fd, offset, SEEK_CUR);
 
             size_t rbytes = fsize - offset;
             size_t read_bytes = (rbytes < *len) ? rbytes : *len;
@@ -283,15 +289,15 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
 
             rbytes -= bytes_read;
 
-            lseek(tar_fd, ((fsize/sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR);
+            lseek(tar_fd, ((fsize / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR);
 
             return (rbytes > 0) ? rbytes : 0;
-
         } else {
-            lseek(tar_fd, ((TAR_INT(tar_header->size) / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR); // Skip to next block 
+            size_t skip_blocks = (TAR_INT(tar_header->size) + sizeof(tar_header_t) - 1) / sizeof(tar_header_t) + 1;
+            lseek(tar_fd, skip_blocks * sizeof(tar_header_t), SEEK_CUR); // Skip to next block
         }
     }
-    
+
     *len = 0;
     return -1;
 }
