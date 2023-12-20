@@ -82,9 +82,9 @@ int main(int argc, char **argv) {
     printf("Is_symlink nope.txt should return 0 and returnd:%d\n", is_symlink_nope);
 
     // read_file() test
-    size_t len = 1024;
-    uint8_t buffer[1024];
-    ssize_t result = read_file(fd, "file1.txt", 0, buffer, &len);
+    size_t len = 512;
+    uint8_t buffer[512];
+    ssize_t result = read_file(fd, "testDir/file1.txt", 0, buffer, &len);
 
     printf("\n\n=======================\n|| read_file() tests ||\n=======================\n\n");
     printf("read_file should return 0 and returned:%ld\nShould show 'file to read.' and read: %zu bytes from file1.txt and print:\n%s\n",result, len, (char *)buffer);
