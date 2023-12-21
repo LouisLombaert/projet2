@@ -170,24 +170,46 @@ int is_symlink(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 
-void resolve_symlink(int tar_fd, tar_header_t* symlink_entry, char* resolved_path) {
-    strcpy(resolved_path, symlink_entry->name);
+void resolve_symlink(int tar_fd, tar_header_t* buffer, char* resolved_path, char **entries, size_t *no_entries, size_t max_no_entries) {
 
-    tar_header_t linked_entry;
+    tar_header_t* linked_entry = malloc(sizeof(tar_header_t));
+    int counter = 0;
+    
     lseek(tar_fd, 0, SEEK_SET);
-    while (read(tar_fd, &linked_entry, sizeof(tar_header_t)) > 0) {
-        if (strcmp(linked_entry.name, symlink_entry->name) == 0) {
-            strcpy(resolved_path, linked_entry.name);
-            return;
+
+    ssize_t len = readlink(buffer->name, resolved_path, sizeof(resolved_path) - 1);
+    resolved_path[len] = '\0';
+    strcat(resolved_path, "/");
+
+    while (read(tar_fd, linked_entry, sizeof(tar_header_t)) > 0) {
+        if (strncmp(resolved_path, linked_entry->name, strlen(resolved_path)) == 0) {
+            if (strcmp(resolved_path, linked_entry->name) != 0){
+                if(counter < max_no_entries) { //max 10 entréés => counter va de 0 à 9 
+                    entries[counter] = malloc(strlen(linked_entry->name) + 1);
+                    strcpy(entries[counter], linked_entry->name);
+                    counter++;
+                }
+		    *no_entries += 1;
+	        }
+            else if(linked_entry->typeflag != DIRTYPE){
+                //vérifier, si l'entrée est la directory elle-même, que c'est bien une directory
+                free(linked_entry);
+                printf("not a directory.\n");
+                return;
+            }
+            continue;
+            
         }
-        lseek(tar_fd, ((TAR_INT(linked_entry.size) / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR);
-    }
+
+        lseek(tar_fd, ((TAR_INT(linked_entry->size) / sizeof(tar_header_t)) + 1) * sizeof(tar_header_t), SEEK_CUR);
+   }
+   free(linked_entry);
+
 }
 
 int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
     tar_header_t* buffer= malloc(sizeof(tar_header_t));
     int counter = 0;
-    
     size_t max_no_entries = *no_entries;
     *no_entries = 0;
     lseek(tar_fd, 0, SEEK_SET);
@@ -199,21 +221,8 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
 
         if(buffer->typeflag == SYMTYPE) {
             char resolved_path[30];
-            resolve_symlink(tar_fd, buffer, resolved_path);
-            
-            if(strncmp(path, resolved_path, length) == 0) {
-                // vérifier que l'entrée n'est pas la directory elle même
-                if (strcmp(path, resolved_path) != 0){
-                    if(counter < max_no_entries) { //max 10 entréés => counter va de 0 à 9 
-                        entries[counter] = malloc(strlen(resolved_path) + 1);
-                        strcpy(entries[counter], resolved_path);
-                        counter++;
-                    }
-                    *no_entries += 1;
-                }
-                
-                continue;
-            }
+            resolve_symlink(tar_fd, buffer, resolved_path, entries, no_entries, max_no_entries);
+            return (*no_entries > 0) ? 1 : 0;
         } else if(strncmp(path, buffer->name, length) == 0) {
             // vérifier que l'entrée n'est pas la directory elle même
             if (strcmp(path, buffer->name) != 0){
@@ -228,7 +237,7 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
                 //vérifier, si l'entrée est la directory elle-même, que c'est bien une directory
                     free(buffer);
                     printf("not a directory.\n");
-                return -1;
+                	return 0;
             }
             continue;
             
