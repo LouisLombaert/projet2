@@ -169,9 +169,74 @@ int is_symlink(int tar_fd, char *path) {
  * @return zero if no directory at the given path exists in the archive,
  *         any other value otherwise.
  */
+int checkEnd(int fd){
+    char data[1024];
+    read(fd,data,1024);
+
+    unsigned int sum = 0;
+    for (int i = 0; i < 1024; ++i) {
+        sum += data[i];
+    }
+    lseek(fd,-1024,SEEK_CUR);
+
+    return sum == 0;
+}
+
+int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
+    lseek(tar_fd, 0, SEEK_SET);
+    char buffer[sizeof(tar_header_t)];
+    long skip = 0;
+    int initBack = 0;
+    int c = -1;
+    
+    while (1) {
+        if(read(tar_fd, buffer, sizeof(tar_header_t)) < 0) return -1; // read error
+        
+        tar_header_t* tar_header = (tar_header_t*)buffer;
+
+        char* name = tar_header->name;
+        if(tar_header->typeflag == SYMTYPE) strcat(name, "/"); 
+
+        if(strncmp(name, path, strlen(path)) == 0) {
+            if(tar_header->typeflag == SYMTYPE && c == -1) return list(tar_fd, tar_header->linkname, entries, no_entries);
+
+            int lastBack = 0;
+            for (int i = 0; i < strlen(tar_header->name); ++i) {
+                if(tar_header->name[i] == '/') lastBack = i;
+            }
+
+            if (c == -1) {
+                initBack = lastBack;
+                c++;
+            } else {
+                if (c < *no_entries && (lastBack <= initBack || tar_header->name[lastBack + 1] == '\0')) {
+                    memcpy(entries[c], name, strlen(name));
+                    c++;
+                }
+            }
+        }
+
+        skip += (TAR_INT(tar_header->size) + sizeof(tar_header_t) - 1) / sizeof(tar_header_t) + 1;
+        lseek(tar_fd, skip * sizeof(tar_header_t), SEEK_SET);
+
+        // Check for the end of the file
+        char check_end[2 * sizeof(tar_header_t)];
+        if (read(tar_fd, check_end, 2 * sizeof(tar_header_t)) != 2 * sizeof(tar_header_t)) return -1; // read error
+
+        int stop = 0;
+        for (int i = 0; i < 2 * sizeof(tar_header_t); ++i) {
+            stop += check_end[i];
+        }
+
+        lseek(tar_fd, -2 * sizeof(tar_header_t), SEEK_CUR);
+        if(stop == 0) break;
+    }
+    *no_entries = (c == -1) ? 0 : c;
+    
+    return *no_entries;
+}
 
 void resolve_symlink(int tar_fd, tar_header_t* buffer, char* resolved_path, char **entries, size_t *no_entries, size_t max_no_entries) {
-
     tar_header_t* linked_entry = malloc(sizeof(tar_header_t));
     int counter = 0;
     
@@ -189,9 +254,8 @@ void resolve_symlink(int tar_fd, tar_header_t* buffer, char* resolved_path, char
                     strcpy(entries[counter], linked_entry->name);
                     counter++;
                 }
-		    *no_entries += 1;
-	        }
-            else if(linked_entry->typeflag != DIRTYPE){
+		        *no_entries += 1;
+	        } else if(linked_entry->typeflag != DIRTYPE){
                 //vérifier, si l'entrée est la directory elle-même, que c'est bien une directory
                 free(linked_entry);
                 printf("not a directory.\n");
@@ -207,7 +271,7 @@ void resolve_symlink(int tar_fd, tar_header_t* buffer, char* resolved_path, char
 
 }
 
-int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
+int liste(int tar_fd, char *path, char **entries, size_t *no_entries) {
     tar_header_t* buffer= malloc(sizeof(tar_header_t));
     int counter = 0;
     size_t max_no_entries = *no_entries;

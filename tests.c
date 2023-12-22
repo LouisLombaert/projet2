@@ -84,12 +84,12 @@ int main(int argc, char **argv) {
     // read_file() test
     size_t len = 512;
     uint8_t buffer[512];
-    ssize_t result = read_file(fd, "testDir/file1.txt", 0, buffer, &len);
+    ssize_t result = read_file(fd, "Makefile", 0, buffer, &len);
 
     printf("\n\n=======================\n|| read_file() tests ||\n=======================\n\n");
     printf("read_file should return 0 and returned:%ld\nShould show 'file to read.' and read: %zu bytes from file1.txt and print:\n%s\n",result, len, (char *)buffer);
     
-
+    printf("\n\n=======================\n|| list() tests ||\n=======================\n\n");
     //list() tests
     char **entries;
     entries = (char **)malloc(10 * sizeof(char *));
@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
     //int list_test = list(fd, "testDir/", entries, no_entries);
     //printf("\nlist_test results: testDir(1): %d, avec %ld entrées(2).\n", list_test, *no_entries);
     
-    int list_test_symlink = list(fd, "symlinktest.txt", entries, no_entries);
+    int list_test_symlink = list(fd, "testDir/", entries, no_entries);
     printf("\nlist_test_symlink results: testDir(1): %d, avec %ld entrées(2).\n", list_test_symlink, *no_entries);
 
     for (int i=0; i<*no_entries; i++){

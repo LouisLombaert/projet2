@@ -13,7 +13,7 @@ submit: all
 	tar --posix --pax-option delete=".*" --pax-option delete="*time*" --no-xattrs --no-acl --no-selinux -c *.h *.c Makefile > soumission.tar
 	
 # Added commands
-arch:
+arch: cls
 	ln -s target_file.txt symbolic_link.txt
 	tar --posix --pax-option delete=".*" --pax-option delete="*time*" --no-xattrs --no-acl --no-selinux -c *.h *.c Makefile *.txt testDir > arch.tar
 
