@@ -169,19 +169,6 @@ int is_symlink(int tar_fd, char *path) {
  * @return zero if no directory at the given path exists in the archive,
  *         any other value otherwise.
  */
-int checkEnd(int fd){
-    char data[1024];
-    read(fd,data,1024);
-
-    unsigned int sum = 0;
-    for (int i = 0; i < 1024; ++i) {
-        sum += data[i];
-    }
-    lseek(fd,-1024,SEEK_CUR);
-
-    return sum == 0;
-}
-
 int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
     lseek(tar_fd, 0, SEEK_SET);
     char buffer[sizeof(tar_header_t)];
